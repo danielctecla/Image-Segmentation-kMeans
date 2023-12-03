@@ -4,7 +4,7 @@ using namespace std;
 
 //-----------------------STRUCTS-----------------------
 struct bitRGB{
-    unsigned int red, green, blue;
+    int red, green, blue;
     int cluster;
     float dist_c;
 };
@@ -19,13 +19,15 @@ void vectorRGB(vector<bitRGB> &vectRGB, vector<char> &buff , int sizeV, int size
 void kMeansPlusPlusInit(vector<bitRGB> &vectRGB, vector<centroid> &centroids, int &numClust);
 int distance(bitRGB &pRGB, centroid &centr);
 
+void writeRGBtoFile(vector<bitRGB> &vectRGB, ofstream &NewImg);
+
 //-----------------------MAIN-----------------------
 int main() {
     int sizeV,sizeH, numClust;
-    sizeV = sizeH = 16;
+    sizeV = sizeH = 512;
 
     vector<bitRGB> vectRGB(sizeV*sizeH);
-    ifstream file ("input.bmp", ios::binary );
+    ifstream file ("input_test.bmp", ios::binary );
     
     //check if the .bmp file is open
     if(file.is_open()){
@@ -59,11 +61,7 @@ int main() {
         ofstream NewImg("output.bmp", ios::binary);
         NewImg.write(buffer.data(), 54);
 
-        for(auto pRGB: vectRGB){
-            NewImg.put(pRGB.red);
-            NewImg.put(pRGB.green);
-            NewImg.put(pRGB.blue);
-        }
+        writeRGBtoFile(vectRGB, NewImg);
         
         file.close();
     }else cout << "Unable to open file" << endl;
@@ -72,12 +70,14 @@ int main() {
 }
 
 void vectorRGB(vector<bitRGB> &vectRGB, vector<char> &buff,int sizeV, int sizeH){
+    vectRGB.resize(sizeV * sizeH);
+
     int i = 0;
 
     for(int header = 54; i < sizeV*sizeH; i++, header+=3){
-        vectRGB[i].red = buff[header];
-        vectRGB[i].green = buff[header + 1];
-        vectRGB[i].blue = buff[header + 2];
+        vectRGB[i].red = static_cast<int>(static_cast<unsigned char>(buff[header]));
+        vectRGB[i].green = static_cast<int>(static_cast<unsigned char>(buff[header + 1]));
+        vectRGB[i].blue = static_cast<int>(static_cast<unsigned char>(buff[header + 2]));
         vectRGB[i].dist_c = FLT_MAX;
     }
 }
@@ -91,27 +91,41 @@ void kMeansPlusPlusInit(vector<bitRGB> &vectRGB, vector<centroid> &centroids, in
     //first centroid - random initialization
     random_device rd;
     mt19937 gen(rd());
-    uniform_int_distribution<> distrib(0, 255);
-    centroid c;
-    c.x = distrib(gen);
-    c.y = distrib(gen);
-    c.z = distrib(gen);
-    centroids.push_back(c);
-
-    int kClusters = 1;
-    vector<pair<float,vector<bitRGB>>> dist(vectRGB.size());
+    uniform_int_distribution<> distrib(0, vectRGB.size() - 1);
+    int randomIndex = distrib(gen);
+    cout << "First centroid: " << randomIndex << endl;
+    centroid c = {static_cast<float>(vectRGB[randomIndex].red),static_cast<float>(vectRGB[randomIndex].green),static_cast<float>(vectRGB[randomIndex].blue)};
+    centroids.push_back(c); 
     
-    // sort(dist.begin(), dist.end(), [](const pair<float,vector<bitRGB>>& a, const pair<float,vector<bitRGB>>& b) {
-    //     return a.first > b.first;
-    // });
-
-    while(kClusters < numClust){
-        //calculate the distance of each point to the nearest centroid
+    while(centroids.size()<numClust){
+        vector<float> dist(vectRGB.size(),0);
         
+        for(int i = 0; i < vectRGB.size(); i++){
+            float minDist = FLT_MAX;
+            for(auto &ctroid: centroids){
+                float d = distance(vectRGB[i], ctroid);
+                if(d < minDist){
+                    minDist = d;
+                }
+            }
+            dist[i] = minDist;
+        }
+
+        discrete_distribution<> weightedDist(dist.begin(), dist.end());
+        randomIndex = weightedDist(gen);
+        centroid c = {static_cast<float>(vectRGB[randomIndex].red),static_cast<float>(vectRGB[randomIndex].green),static_cast<float>(vectRGB[randomIndex].blue)};
+        centroids.push_back(c);
     }
     
-    
-    
-    
-    
+    for(int i = 0;i<centroids.size();i++){
+        cout << "Centroid " << i << ": " << centroids[i].x << " " << centroids[i].y << " " << centroids[i].z << endl;
+    }
+}
+
+void writeRGBtoFile(vector<bitRGB> &vectRGB, ofstream &NewImg) {
+    for (const auto &pixel : vectRGB) {
+        NewImg.put(static_cast<char>(pixel.red));
+        NewImg.put(static_cast<char>(pixel.green));
+        NewImg.put(static_cast<char>(pixel.blue));
+    }
 }
