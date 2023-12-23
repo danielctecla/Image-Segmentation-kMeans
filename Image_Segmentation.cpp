@@ -34,11 +34,14 @@ void writeRGBtoFile(vector<bitRGB> &vectRGB, vector<centroid> &centroids, vector
 //-----------------------MAIN-----------------------
 int main() {
     int sizeV,sizeH, numClust;
-    sizeV = 855;
-    sizeH = 481;
-    
+    cout<<"Image size: ";
+    cin>>sizeV>>sizeH;
+    string name;
+    cout<<"Image name: ";
+    cin>>name;
+    name += ".bmp";
     vector<bitRGB> vectRGB(sizeV*sizeH);
-    ifstream file ("input.bmp", ios::binary );
+    ifstream file (name, ios::binary );
     
     //check if the .bmp file is open
     if(file.is_open()){
@@ -163,7 +166,7 @@ void convergeCentroids(vector<bitRGB> &vectRGB, vector<centroid> &centroids){
     
     cout << "Starting K-Means++" << endl;
     vector<sumCluster> sumC(centroids.size(), {0,0,0,0});
-    while(!converged(previousCentroids, centroids, epsilon)){
+    while(!converged(previousCentroids, centroids, epsilon) && iteration < 10){
         previousCentroids = centroids;
         for(int i=0 ; i < vectRGB.size(); i++){
             int xB = vectRGB[i].blue;
@@ -195,6 +198,7 @@ void convergeCentroids(vector<bitRGB> &vectRGB, vector<centroid> &centroids){
 
         cout << "\nIteration " << iteration++ << endl;
         for (int i = 0; i < sumC.size(); i++) cout<< "Cluster " << i << ": " << centroids[i].x << " " << centroids[i].y << " " << centroids[i].z << " " << sumC[i].numPixels << endl;
+        
 
         for(int i=0; i < centroids.size(); i++){
             if(sumC[i].numPixels != 0){
@@ -210,10 +214,9 @@ void convergeCentroids(vector<bitRGB> &vectRGB, vector<centroid> &centroids){
 }
 
 void writeRGBtoFile(vector<bitRGB> &vectRGB, vector<centroid> &centroids, vector<char> &buff) {
-    vector<bitRGB> vectClust = {{0,0,255,0,0}, {0,255,0,0,0}, {255,0,0,0,0}, {255,255,0,0,0}, {255,0,255,0,0}, {0,255,255,0,0}, {255,255,255,0,0}, {0,0,0,0,0}};
     for(int i = 54, j = 0; j < vectRGB.size(); i+=3, j++){
-        buff[i] = vectClust[vectRGB[j].cluster].blue;
-        buff[i+1] = vectClust[vectRGB[j].cluster].green;
-        buff[i+2] = vectClust[vectRGB[j].cluster].red;
+        buff[i] = static_cast<int>(centroids[vectRGB[j].cluster].x);
+        buff[i+1] = static_cast<int>(centroids[vectRGB[j].cluster].y);
+        buff[i+2] = static_cast<int>(centroids[vectRGB[j].cluster].z);
     }
 }
