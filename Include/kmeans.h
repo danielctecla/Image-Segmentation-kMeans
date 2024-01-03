@@ -6,6 +6,7 @@
 #include "config.h"
 
 #define stc_cstD(x) static_cast<double>(x)
+#define stc_cstI(x) static_cast<int>(x)
 #define endl "\n"
 #define mspace "\n\n"
 #define hspace "\n\n\n"
@@ -46,6 +47,60 @@ void info(cluster &c, int &k){
     <<setw(10)<<c.numPixels << endl;
 }
 
+vector<vector<medianClust>> summed_table(vector<vector<bitRGB>> &matRGB){
+    vector<vector<medianClust>> ref_Img(matRGB.size(), vector<medianClust>(matRGB[0].size()));
+    ref_Img[0][0] = {stc_cstD(matRGB[0][0].ble), stc_cstD(matRGB[0][0].grn), stc_cstD(matRGB[0][0].red)};
+    for(int i = 1; i<matRGB.size(); i++)
+        ref_Img[i][0] = {ref_Img[i-1][0].b + matRGB[i][0].ble, ref_Img[i-1][0].g + matRGB[i][0].grn, ref_Img[i-1][0].r + matRGB[i][0].red};
+    
+    for(int i = 1; i<matRGB[0].size(); i++)
+        ref_Img[0][i] = {ref_Img[0][i-1].b + matRGB[0][i].ble, ref_Img[0][i-1].g + matRGB[0][i].grn, ref_Img[0][i-1].r + matRGB[0][i].red};
+    
+    for(int i = 1; i<matRGB.size(); i++)
+        for(int j = 1; j<matRGB[0].size(); j++)
+            ref_Img[i][j] = {ref_Img[i-1][j].b + ref_Img[i][j-1].b - ref_Img[i-1][j-1].b + matRGB[i][j].ble,
+                             ref_Img[i-1][j].g + ref_Img[i][j-1].g - ref_Img[i-1][j-1].g + matRGB[i][j].grn,
+                             ref_Img[i-1][j].r + ref_Img[i][j-1].r - ref_Img[i-1][j-1].r + matRGB[i][j].red};
+    
+    return ref_Img;
+}
+
+void Box_Blur(vector<vector<bitRGB>> &matRGB, int &r){
+    //This box blur use a Kernel = 3x3
+    // medianClust sum;
+    // vector<vector<bitRGB>> ref_Img = matRGB;
+    // vector<int> px = {-1,0,1,-1,0,1,-1,0,1};
+    // vector<int> py = {-1,-1,-1,0,0,0,1,1,1};
+    // for(int i = 1; i < matRGB.size()-1; i++){
+    //     for(int j = 1; j < matRGB[0].size()-1; j++){
+    //         sum.b = sum.g = sum.r = 0;
+    //         for(int k = 0; k < 9; k++){
+    //             sum.b += ref_Img[i+px[k]][j+py[k]].ble;
+    //             sum.g += ref_Img[i+px[k]][j+py[k]].grn;
+    //             sum.r += ref_Img[i+px[k]][j+py[k]].red;
+    //         }
+    //         matRGB[i][j].ble = sum.b/9;
+    //         matRGB[i][j].grn = sum.g/9;
+    //         matRGB[i][j].red = sum.r/9;
+    //     }
+    // }
+
+    //Dynamic kernel
+    medianClust sum;
+    int area = (2*r+1)*(2*r+1);
+    vector<vector<medianClust>> ref_Img = summed_table(matRGB);
+
+    for(int i = r + 1; i < matRGB.size() - r -1 ; i++){
+        for(int j = r + 1; j < matRGB[0].size() - r - 1; j++){
+            sum = {ref_Img[i+r][j+r].b - ref_Img[i-r-1][j+r].b - ref_Img[i+r][j-r-1].b + ref_Img[i-r-1][j-r-1].b,
+                   ref_Img[i+r][j+r].g - ref_Img[i-r-1][j+r].g - ref_Img[i+r][j-r-1].g + ref_Img[i-r-1][j-r-1].g,
+                   ref_Img[i+r][j+r].r - ref_Img[i-r-1][j+r].r - ref_Img[i+r][j-r-1].r + ref_Img[i-r-1][j-r-1].r};
+
+            matRGB[i][j] = {stc_cstI(sum.b/area), stc_cstI(sum.g/area), stc_cstI(sum.r/area)};
+        }
+    }
+}
+
 void kmeans_pp(vector<vector<bitRGB>> &matRGB, vector<cluster> &centroids, int &numClust, int &type){
     vector<pair<int,int>> indices(matRGB.size()*matRGB[0].size(),{0,0});
     cluster c;
@@ -64,7 +119,7 @@ void kmeans_pp(vector<vector<bitRGB>> &matRGB, vector<cluster> &centroids, int &
     centroids.push_back(c);
     // cout<<"first centroid: "<<centroids[0].b<<" "<<centroids[0].g<<" "<<centroids[0].r<<endl;
 
-    while(centroids.size() <= numClust){
+    while(centroids.size() < numClust){
         vector<double> distance_distrib(matRGB.size()*matRGB[0].size(),0);
         int k = 0; fNonZero = 0;
         for(int i = 0; i < matRGB.size(); i++){
@@ -132,15 +187,16 @@ void kmeans(vector<vector<bitRGB>> &matRGB, vector<cluster> &centroids, int &typ
             if(show) info(centroids[k], k);
         }
 
-        for(auto &ctroid: centroids){
+        if(CentroidUpdated){
+            for(auto &ctroid: centroids){
                 ctroid.numPixels = 0;
                 ctroid.median = medianClust();
-        }  
-        
+            }
+        }
     }
     
     cout<<hspace<<" Final Centroids"<<endl;
-    ClustersInfo(centroids,1);    
+    ClustersInfo(centroids,0);    
 }
 
 void showClustering(vector<vector<bitRGB>> &matRGB){

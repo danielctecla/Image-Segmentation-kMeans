@@ -7,6 +7,7 @@ struct medianClust{
     long double b, g, r;
 
     medianClust() : b(0), g(0), r(0) {}
+    medianClust(long double b, long double g, long double r) : b(b), g(g), r(r) {}
 };
 
 struct cluster{

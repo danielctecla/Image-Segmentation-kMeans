@@ -5,7 +5,7 @@
 #include <string>
 
 #include "../include/struct.h"
-#include "../include/import.h"
+#include "../include/import_export.h"
 #include "../include/kmeans.h"
 #define endl "\n"
 
@@ -17,15 +17,14 @@ int main(){
     clearScreen();
 
     int sizeV,sizeH, numClust;
-    int type = 0, show = 0;
+    int type = 0, show = 0, kernel = 3;
     string img_name;
     vector<cluster> centroids;
     readImgData(sizeV, sizeH, img_name);
-    vector<vector<bitRGB>> matRGB(sizeV, vector<bitRGB>(sizeH));
     ifstream file (img_name, ios::binary );
-
-        //check if the .bmp file is not open
-    if(!file.is_open()){ cout<<"Error opening file"<<endl; return -1; }
+    if(!file.is_open()){ cout<<"Error opening file"<<endl; return -1; } //check if the .bmp file is not open
+    sizeImg(sizeV, sizeH, file);
+    vector<vector<bitRGB>> matRGB(sizeV, vector<bitRGB>(sizeH));
 
         //get information about the image and read the data into a buffer
     file.seekg(0, ios::end); streampos sizeF = file.tellg();
@@ -35,7 +34,7 @@ int main(){
     if (file.fail()){ cout << "Error reading file" << endl; return -1; }
 
     createMatrixRGB(matRGB, buffer, sizeV, sizeH);
-   
+
         //get the number of clusters
     cout<<"Type: "; cin>>type;
     if(type){ cout<<"Number of clusters: "; cin>>numClust; } 
@@ -45,6 +44,10 @@ int main(){
     cout<<"Show clustering? (1/0): "; cin>>show;
     clearScreen();
 
+        //box blur
+    Box_Blur(matRGB, kernel);
+    exportImg(matRGB, buffer, sizeF);
+
         //clustering
     cout<<"   Clustering..."<<endl<<endl;
     kmeans_pp(matRGB, centroids, numClust, type);
@@ -52,7 +55,8 @@ int main(){
     kmeans(matRGB, centroids, type, show);
 
         //export the image
-    exportImg(matRGB, buffer, sizeF);
+    ClusteredImg(matRGB, buffer, sizeF, centroids);
+    revomeBackground(matRGB, centroids, buffer, sizeF);
     file.close();
     
     return 0;
