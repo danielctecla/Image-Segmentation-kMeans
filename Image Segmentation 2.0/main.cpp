@@ -69,17 +69,4 @@ void clearScreen() {
         system("clear");
     #endif
 }
- // char csv[]="data.csv";
-    // FILE *pOutput = fopen(csv,"w");
-
-    //     //print the matrix
-    //     for(int i = 0; i < sizeV; i++){
-    //         for(int j = 0; j < sizeH; j++){
-    //             cout<<"("<<matRGB[i][j].ble<<", "<<matRGB[i][j].grn<<", "<<matRGB[i][j].red<<")"<<matRGB[i][j].min_dist<<" "<<matRGB[i][j].clust<<endl;
-    //             fprintf(pOutput,"(%d,%d,%d)\n",matRGB[i][j].ble,matRGB[i][j].grn,matRGB[i][j].red);
-    //         }
-    //         cout<<endl;
-    //     }
-
-    //     pOutput = fopen(csv,"r");
-    //     fclose(pOutput);
+ // char csv[]="data.csv"
